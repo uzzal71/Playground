@@ -32,4 +32,8 @@ func main() {
 	// declaring a variable without initializing it, it will have the zero value of its type
 	var isStudent bool
 	println("Is Student:", isStudent) // false
+
+	// declaring a variable with a short variable declaration, it will infer the type from the value
+	score := 95.5
+	println("Score:", score)
 }
