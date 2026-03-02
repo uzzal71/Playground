@@ -52,4 +52,12 @@ func main() {
 	n1, _ := strconv.Atoi(s1)
 	result := strconv.Itoa(n1 * 2)
 	fmt.Println(result) // "512"
+
+	// zero values
+	var zeroInt int
+	var zeroFloat float64
+	var zeroString string
+	var zeroBool bool
+
+	fmt.Println("Zero values:", zeroInt, zeroFloat, zeroString, zeroBool)
 }
