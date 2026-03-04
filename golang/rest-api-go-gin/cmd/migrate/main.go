@@ -5,13 +5,16 @@ import (
 	"log"
 	"os"
 
-	"github.com/golang-migrate/migrate/database/sqlite3"
-	"github.com/golang-migrate/migrate/source/file"
+	_ "github.com/mattn/go-sqlite3"
+
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	"github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("Please provide a migration directory: 'up' or 'down'")
+		log.Fatal("Please provide migration direction: up or down")
 	}
 
 	direction := os.Args[1]
@@ -20,20 +23,19 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer db.Close()
 
-	instance, err := sqlite3.WithInstance(db)
+	driver, err := sqlite3.WithInstance(db, &sqlite3.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fSrc, err = (&file.File{}).Open("cmd/migrate/migrations")
+	fSrc, err := (&file.File{}).Open("cmd/migrate/migrations")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	m, err := migrate.NewWithInstance("file", fSrc, "sqlite3", instance)
+	m, err := migrate.NewWithInstance("file", fSrc, "sqlite3", driver)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,4 +52,6 @@ func main() {
 	default:
 		log.Fatal("Invalid direction. Use 'up' or 'down'")
 	}
+
+	log.Println("Migration completed successfully")
 }
