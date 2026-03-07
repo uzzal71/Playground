@@ -11,8 +11,8 @@ type AttendanceModel struct {
 
 type Attendance struct {
 	Id        int       `json:"id"`
-	UserId    int       `json:"user_id"`
-	EventId   int       `json:"event_id"`
+	UserId    int       `json:"userId", binding:"required"`
+	EventId   int       `json:"eventId", binding:"required"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
