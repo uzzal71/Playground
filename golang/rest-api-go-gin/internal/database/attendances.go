@@ -11,8 +11,54 @@ type AttendanceModel struct {
 
 type Attendance struct {
 	Id        int       `json:"id"`
-	UserId    int       `json:"userId", binding:"required"`
-	EventId   int       `json:"eventId", binding:"required"`
+	UserId    int       `json:"userId" binding:"required"`
+	EventId   int       `json:"eventId"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (m *AttendanceModel) Insert(attendance *Attendance) (int, error) {
+	query := `
+	INSERT INTO attendances (user_id, event_id, created_at, updated_at)
+	VALUES (?, ?, ?, ?)
+	`
+
+	result, err := m.DB.Exec(query, attendance.UserId, attendance.EventId, time.Now(), time.Now())
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
+}
+
+func (m *AttendanceModel) GetByEventId(eventId int) ([]*Attendance, error) {
+	query := `SELECT id, user_id, event_id, created_at, updated_at FROM attendances WHERE event_id = ?`
+
+	rows, err := m.DB.Query(query, eventId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var attendances []*Attendance
+
+	for rows.Next() {
+		var a Attendance
+		err := rows.Scan(&a.Id, &a.UserId, &a.EventId, &a.CreatedAt, &a.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		attendances = append(attendances, &a)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return attendances, nil
 }
