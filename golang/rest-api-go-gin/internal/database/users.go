@@ -10,12 +10,12 @@ type UserModel struct {
 }
 
 type User struct {
-	Id        int       `json:"id"`
-	Name      string    `json:"name" binding:"required,min=3,max=100"`
-	Email     string    `json:"email" binding:"required,email"`
-	Password  string    `json:"-" binding:"required,min=6,max=100"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Id        int    `json:"id"`
+	Name      string `json:"name" binding:"required,min=3,max=100"`
+	Email     string `json:"email" binding:"required,email"`
+	Password  string `json:"-" binding:"required,min=6,max=100"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 func (m *UserModel) Insert(user *User) (int, error) {
@@ -35,4 +35,21 @@ func (m *UserModel) Insert(user *User) (int, error) {
 	}
 
 	return int(id), nil
+}
+
+func (m *UserModel) Get(id int) (*User, error) {
+	query := `SELECT id, name, email, password, created_at, updated_at FROM users WHERE id = ?`
+
+	row := m.DB.QueryRow(query, id)
+
+	var u User
+	err := row.Scan(&u.Id, &u.Name, &u.Email, &u.Password, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &u, nil
 }

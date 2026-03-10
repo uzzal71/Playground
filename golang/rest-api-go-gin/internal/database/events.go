@@ -10,14 +10,14 @@ type EventModel struct {
 }
 
 type Event struct {
-	Id          int       `json:"id"`
-	OwnerId     int       `json:"ownerId" binding:"required"`
-	Name        string    `json:"name" binding:"required,min=3,max=100"`
-	Description string    `json:"description" binding:"required,min=10,max=200"`
-	Date        time.Time `json:"date" binding:"required"`
-	Location    string    `json:"location" binding:"required,min=3,max=100"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	Id          int    `json:"id"`
+	OwnerId     int    `json:"ownerId" binding:"required"`
+	Name        string `json:"name" binding:"required,min=3,max=100"`
+	Description string `json:"description" binding:"required,min=10,max=200"`
+	Date        string `json:"date" binding:"required"`
+	Location    string `json:"location" binding:"required,min=3,max=100"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
 }
 
 func (m *EventModel) Insert(event *Event) (int, error) {

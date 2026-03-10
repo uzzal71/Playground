@@ -107,3 +107,81 @@ func (app *application) deleteEvent(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusNoContent, nil)
 }
+
+func (app *application) addAttendanceToEvent(ctx *gin.Context) {
+	eventId, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+		return
+	}
+
+	userId, err := strconv.Atoi(ctx.Param("userId"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	event, err := app.models.Events.Get(eventId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if event == nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
+	}
+
+	userToAdd, err := app.models.Users.Get(userId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if userToAdd == nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
+	existingAttendance, err := app.models.Attendances.GetByEventAndAttendance(event.Id, userToAdd.Id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if existingAttendance != nil {
+		ctx.JSON(http.StatusConflict, gin.H{"error": "user already attending this event"})
+		return
+	}
+
+	attendance := &database.Attendance{
+		UserId:  userToAdd.Id,
+		EventId: event.Id,
+	}
+
+	attendanceId, err := app.models.Attendances.Insert(attendance)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	attendance.Id = attendanceId
+	ctx.JSON(http.StatusCreated, attendance)
+
+}
+
+func (app *application) getEventAttendances(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+		return
+	}
+
+	attendances, err := app.models.Attendances.GetAttendancesByEvent(id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, attendances)
+}
