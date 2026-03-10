@@ -17,3 +17,22 @@ type User struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+func (m *UserModel) Insert(user *User) (int, error) {
+	query := `
+	INSERT INTO users (name, email, password, created_at, updated_at)
+	VALUES (?, ?, ?, ?, ?)
+	`
+
+	result, err := m.DB.Exec(query, user.Name, user.Email, user.Password, time.Now(), time.Now())
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
+}
