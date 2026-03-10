@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"time"
 )
@@ -38,9 +39,12 @@ func (m *UserModel) Insert(user *User) (int, error) {
 }
 
 func (m *UserModel) Get(id int) (*User, error) {
-	query := `SELECT id, name, email, password, created_at, updated_at FROM users WHERE id = ?`
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	query := `SELECT * FROM users WHERE id = $1`
 
-	row := m.DB.QueryRow(query, id)
+	row := m.DB.QueryRowContext(ctx, query, id)
 
 	var u User
 	err := row.Scan(&u.Id, &u.Name, &u.Email, &u.Password, &u.CreatedAt, &u.UpdatedAt)

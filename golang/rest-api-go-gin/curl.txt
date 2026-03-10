@@ -48,3 +48,5 @@ curl -X POST http://localhost:4000/api/v1/events/3/attendances/2 \
 
 2️⃣ Get All Attendances for Event
 curl http://localhost:4000/api/v1/events/1/attendances
+
+curl http://localhost:4000/api/v1/attendances/1/events

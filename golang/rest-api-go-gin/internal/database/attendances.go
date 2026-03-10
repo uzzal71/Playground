@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"time"
 )
@@ -79,4 +80,53 @@ func (m *AttendanceModel) GetAttendancesByEvent(eventId int) ([]*Attendance, err
 	}
 
 	return attendances, nil
+}
+
+func (m *AttendanceModel) Delete(userId, eventId int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `DELETE FROM attendances WHERE user_id = ? AND event_id = ?`
+
+	_, err := m.DB.ExecContext(ctx, query, userId, eventId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *AttendanceModel) GetEventsByAttendance(attendanceId int) ([]*Event, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+	SELECT e.id, e.owner_id, e.name, e.description, e.date, e.location, e.location
+	FROM events e
+	INNER JOIN attendances a ON e.id = a.event_id
+	WHERE a.user_id = $1
+	`
+
+	rows, err := m.DB.QueryContext(ctx, query, attendanceId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []*Event
+
+	for rows.Next() {
+		var event Event
+		err := rows.Scan(&event.Id, &event.OwnerId, &event.Name, &event.Description, &event.Date, &event.Location)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, &event)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return events, nil
 }
