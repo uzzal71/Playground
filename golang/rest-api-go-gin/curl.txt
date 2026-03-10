@@ -1,0 +1,39 @@
+1️⃣ Register User (POST)
+curl -X POST http://localhost:4000/api/v1/auth/register \
+-H "Content-Type: application/json" \
+-d '{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "secret123"
+}'
+
+1️⃣ Create Event (POST)
+curl -X POST http://localhost:4000/api/v1/events \
+-H "Content-Type: application/json" \
+-d '{
+  "ownerId": 1,
+  "name": "Tech Conference",
+  "description": "A conference about Go microservices architecture",
+  "date": "2026-07-10T10:00:00Z",
+  "location": "Dhaka"
+}'
+
+2️⃣ Get All Events
+curl http://localhost:4000/api/v1/events
+
+3️⃣ Get Single Event
+curl http://localhost:4000/api/v1/events/1
+
+4️⃣ Update Event
+curl -X PUT http://localhost:4000/api/v1/events/1 \
+-H "Content-Type: application/json" \
+-d '{
+  "ownerId": 1,
+  "name": "Updated Tech Conference",
+  "description": "Updated conference about Go backend systems",
+  "date": "2026-08-01T12:00:00Z",
+  "location": "Dhaka Bangladesh"
+}'
+
+5️⃣ Delete Event
+curl -X DELETE http://localhost:4000/api/v1/events/1
