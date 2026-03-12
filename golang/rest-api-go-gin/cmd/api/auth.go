@@ -21,6 +21,8 @@ type registerResponse struct {
 	Email string `json:"email"`
 }
 
+func (app *application) loginUser(ctx *gin.Context) {}
+
 func (app *application) registerUser(ctx *gin.Context) {
 	var req registerRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
