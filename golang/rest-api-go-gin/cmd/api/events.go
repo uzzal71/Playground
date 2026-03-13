@@ -16,6 +16,14 @@ func (app *application) createEvent(ctx *gin.Context) {
 		return
 	}
 
+	user := app.GetUserFromContext(ctx)
+	if user.Id == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	event.OwnerId = user.Id
+
 	id, err := app.models.Events.Insert(&event)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -64,9 +72,20 @@ func (app *application) updateEvent(ctx *gin.Context) {
 		return
 	}
 
+	user := app.GetUserFromContext(ctx)
+	if user.Id == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	existingEvent, err := app.models.Events.Get(id)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if existingEvent.OwnerId != user.Id {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 
@@ -96,6 +115,28 @@ func (app *application) deleteEvent(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	user := app.GetUserFromContext(ctx)
+	if user.Id == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	existingEvent, err := app.models.Events.Get(id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if existingEvent == nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
+	}
+
+	if existingEvent.OwnerId != user.Id {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 
@@ -140,6 +181,17 @@ func (app *application) addAttendanceToEvent(ctx *gin.Context) {
 
 	if userToAdd == nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
+	user := app.GetUserFromContext(ctx)
+	if user.Id == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	if event.OwnerId != user.Id {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 
@@ -196,6 +248,28 @@ func (app *application) deleteAttendanceFromEvent(ctx *gin.Context) {
 	userId, err := strconv.Atoi(ctx.Param("userId"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	event, err := app.models.Events.Get(id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if event == nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
+	}
+
+	user := app.GetUserFromContext(ctx)
+	if user.Id == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	if event.OwnerId != user.Id {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 
