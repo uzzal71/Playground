@@ -170,7 +170,7 @@ func (app *application) addAttendanceToEvent(ctx *gin.Context) {
 
 }
 
-func (app *application) getEventAttendances(ctx *gin.Context) {
+func (app *application) getAttendanceForEvent(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
