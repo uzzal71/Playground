@@ -32,6 +32,18 @@ type loginResponse struct {
 	Token string `json:"token"`
 }
 
+// login authenticates a user and returns a JWT token
+// @Summary User login
+// @Description Authenticate with email and password to receive a JWT token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param credentials body loginRequest true "Login credentials"
+// @Success 200 {object} loginResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/auth/login [post]
 func (app *application) login(ctx *gin.Context) {
 	var auth loginRequest
 	if err := ctx.ShouldBindJSON(&auth); err != nil {
@@ -63,6 +75,17 @@ func (app *application) login(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// registerUser creates a new user account
+// @Summary Register a new user
+// @Description Create a new user account with name, email, and password
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param user body registerRequest true "Registration details"
+// @Success 201 {object} registerResponse
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/auth/register [post]
 func (app *application) registerUser(ctx *gin.Context) {
 	var req registerRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {

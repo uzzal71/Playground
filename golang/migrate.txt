@@ -4,3 +4,6 @@ migrate create -ext sql -dir ./cmd/migrate/migrations -seq create_attendances_ta
 
 go run ./cmd/migrate/main.go up
 go run ./cmd/migrate/main.go down
+
+go install github.com/swaggo/swag/cmd/swag@latest
+swag init --dir cmd/api --parseDependency --parseInternal --parseDepth 1

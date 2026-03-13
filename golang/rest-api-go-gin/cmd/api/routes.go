@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func (app *application) routes() http.Handler {
@@ -28,6 +30,14 @@ func (app *application) routes() http.Handler {
 		authGroup.POST("/events/:id/attendances/:userId", app.addAttendanceToEvent)
 		authGroup.DELETE("/events/:id/attendances/:User", app.deleteAttendanceFromEvent)
 	}
+
+	g.GET("/swagger/*any", func(c *gin.Context) {
+		if c.Request.URL.Path == "/swagger/" {
+			c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
+			return
+		}
+		ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("http://localhost:4000/swagger/doc.json"))(c)
+	})
 
 	return g
 }
