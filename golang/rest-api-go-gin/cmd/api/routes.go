@@ -19,7 +19,7 @@ func (app *application) routes() http.Handler {
 		v1.POST("/auth/login", app.login)
 	}
 
-	authGroup := g.Group("/")
+	authGroup := v1.Group("/")
 	authGroup.Use(app.AuthMiddleware())
 	{
 		authGroup.POST("/events", app.createEvent)
