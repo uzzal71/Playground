@@ -57,3 +57,23 @@ func (m *UserModel) Get(id int) (*User, error) {
 
 	return &u, nil
 }
+
+func (m *UserModel) GetByEmail(email string) (*User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	query := `SELECT * FROM users WHERE email = $1`
+
+	row := m.DB.QueryRowContext(ctx, query, email)
+
+	var u User
+	err := row.Scan(&u.Id, &u.Name, &u.Email, &u.Password, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &u, nil
+}
