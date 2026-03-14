@@ -1,5 +1,6 @@
 package main
 
+// @title Go Gin REST API
 import (
 	"database/sql"
 	"log"
