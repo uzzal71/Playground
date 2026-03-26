@@ -1,0 +1,78 @@
+Other useful stop commands:
+docker compose down
+
+# Stop and remove volumes (deletes all database data)
+docker compose down -v
+
+# Stop without removing containers
+docker compose stop
+
+# Start again
+docker compose up -d
+
+# Check PostgreSQL databases
+docker compose exec postgres psql -U postgres -c "\l"
+
+# Check MySQL databases
+docker compose exec mysql mysql -u root -plocally -e "SHOW DATABASES;"
+
+Check if tables were created:
+# PostgreSQL tables
+docker compose exec postgres psql -U postgres -d microfinance_auth -c "\dt"
+
+# MySQL tables
+docker compose exec mysql mysql -u root -plocally microfinance_loans -e "SHOW TABLES;"
+
+If tables don't exist, run migrations:
+docker compose exec backend php artisan config:clear
+docker compose exec backend php artisan migrate --database=pgsql --path=database/migrations/pgsql --force
+docker compose exec backend php artisan migrate --database=mysql --path=database/migrations/mysql --force
+
+Check if tables exist at all:
+docker compose exec mysql mysql -u root -plocally microfinance_loans -e "SELECT * FROM loans;"
+docker compose exec mysql mysql -u root -plocally microfinance_loans -e "SELECT * FROM repayment_schedules;"
+
+3:20 PMCheck PostgreSQL (users table):
+docker compose exec postgres psql -U postgres -d microfinance_auth -c "SELECT * FROM users;"
+
+Check MySQL (loans & repayments):
+docker compose exec mysql mysql -u root -plocally microfinance_loans -e "SELECT * FROM loans;"
+docker compose exec mysql mysql -u root -plocally microfinance_loans -e "SELECT * FROM repayment_schedules;"
+
+Count rows:
+docker compose exec postgres psql -U postgres -d microfinance_auth -c "SELECT COUNT(*) FROM users;"
+docker compose exec mysql mysql -u root -plocally microfinance_loans -e "SELECT COUNT(*) FROM loans; SELECT COUNT(*) FROM repayment_schedules;"
+
+View all logs together:
+docker compose logs -f
+
+View specific service logs:
+# Backend logs
+docker compose logs -f backend
+
+# Frontend logs
+docker compose logs -f frontend
+
+# PostgreSQL logs
+docker compose logs -f postgres
+
+# MySQL logs
+docker compose logs -f mysql
+
+View last 50 lines only:
+docker compose logs --tail=50 backend
+docker compose logs --tail=50 frontend
+
+Enter backend container to debug:
+docker compose exec backend bash
+# Inside container:
+php artisan config:clear
+php artisan route:list
+exit
+
+Enter frontend container to debug:
+docker compose exec frontend sh
+# Inside container:
+ls -la
+cat .env.local
+exit

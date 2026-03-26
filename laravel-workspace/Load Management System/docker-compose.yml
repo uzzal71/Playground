@@ -1,0 +1,144 @@
+# ─── Microfinance Loan Management System ──────────────────
+# docker-compose.yml
+# Place this file in the root: ~/Desktop/Laravel Workspace/Load Management System/
+#
+# Usage:
+#   docker-compose up -d            → Start all services
+#   docker-compose up -d --build    → Rebuild and start
+#   docker-compose down             → Stop all services
+#   docker-compose logs -f backend  → View backend logs
+#   docker-compose exec backend php artisan migrate --database=pgsql --path=database/migrations/pgsql
+#   docker-compose exec backend php artisan migrate --database=mysql --path=database/migrations/mysql
+# ──────────────────────────────────────────────────────────
+
+version: "3.8"
+
+services:
+
+  # ─── PostgreSQL (Auth & Users) ────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: microfinance_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: microfinance_auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - microfinance_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── MySQL (Loans & Repayments) ───────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: microfinance_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: microfinance_loans
+      MYSQL_ROOT_PASSWORD: locally
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - microfinance_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-plocally"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Laravel Backend ──────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: microfinance_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/var/www
+      - /var/www/vendor
+    environment:
+      APP_NAME: "Microfinance Loan Management"
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      APP_KEY: ${APP_KEY:-base64:eH5evUvuTGHUnWaTaQuAv8NzYciwdPSi/Y0AtmtCW+k=}
+
+      # PostgreSQL
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: microfinance_auth
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+
+      # MySQL
+      DB_MYSQL_HOST: mysql
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_DATABASE: microfinance_loans
+      DB_MYSQL_USERNAME: root
+      DB_MYSQL_PASSWORD: locally
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-ElJkfEdFyZSzXzIlMPXoa9MdMc8MQTXz90HIYQBZBOa4VJvipJBWfJnj0YoIl1nG}
+      JWT_TTL: 60
+      JWT_REFRESH_TTL: 20160
+      JWT_ALGO: HS256
+
+      # Swagger
+      L5_SWAGGER_GENERATE_ALWAYS: "true"
+      L5_SWAGGER_CONST_HOST: http://localhost:8000/api
+
+      # CORS
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - microfinance_network
+
+  # ─── Next.js Frontend ────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: dev
+    container_name: microfinance_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+    depends_on:
+      - backend
+    networks:
+      - microfinance_network
+
+# ─── Volumes ───────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  mysql_data:
+    driver: local
+
+# ─── Network ──────────────────────────────────────────
+networks:
+  microfinance_network:
+    driver: bridge
