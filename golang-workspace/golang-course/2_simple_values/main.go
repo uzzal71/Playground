@@ -22,4 +22,8 @@ func main() {
 	// Declare and initialize a variable of type byte
 	var grade byte = 'A'
 	fmt.Printf("Grade: %c\n", grade)
+
+	// Declare and initialize a variable of type rune
+	var symbol rune = '€'
+	fmt.Printf("Symbol: %c\n", symbol)
 }
