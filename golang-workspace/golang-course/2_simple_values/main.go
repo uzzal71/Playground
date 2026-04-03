@@ -14,4 +14,8 @@ func main() {
 	// Declare and initialize a variable of type bool
 	var isStudent bool = true
 	fmt.Println("Is Student:", isStudent)
+
+	// Declare and initialize a variable of type float64
+	var height float64 = 5.9
+	fmt.Println("Height:", height)
 }
