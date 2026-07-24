@@ -10,8 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/uzzal71/students-api/docs"
 	"github.com/uzzal71/students-api/internal/config"
 	apphttp "github.com/uzzal71/students-api/internal/http"
+	"github.com/uzzal71/students-api/internal/http/handlers/auth"
 	"github.com/uzzal71/students-api/internal/http/handlers/student"
 	"github.com/uzzal71/students-api/internal/models"
 	"github.com/uzzal71/students-api/internal/repository"
@@ -19,6 +21,17 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
+
+// @title           Students API
+// @version         1.0
+// @description     REST API for managing students, secured with JWT authentication.
+// @host            localhost:8082
+// @BasePath        /api
+
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 Type "Bearer" followed by a space and the JWT token.
 
 func main() {
 	cfg := config.MustLoad()
@@ -38,7 +51,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := db.AutoMigrate(&models.Student{}); err != nil {
+	if err := db.AutoMigrate(&models.Student{}, &models.User{}); err != nil {
 		slog.Error("failed to migrate database", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
@@ -46,7 +59,11 @@ func main() {
 
 	studentRepo := repository.NewStudentRepository(db)
 	studentHandler := student.NewHandler(studentRepo)
-	router := apphttp.NewRouter(studentHandler)
+
+	userRepo := repository.NewUserRepository(db)
+	authHandler := auth.NewHandler(userRepo, cfg.JWT)
+
+	router := apphttp.NewRouter(studentHandler, authHandler, cfg.JWT.Secret)
 
 	server := http.Server{
 		Addr:    cfg.HTTPServer.Address,

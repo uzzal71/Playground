@@ -24,16 +24,15 @@ type Config struct {
 	JWT         `yaml:"jwt"`
 }
 
+const defaultConfigPath = "config/local.yaml"
+
 func MustLoad() *Config {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		flags := flag.String("config", "", "path to the configuration file")
+		flags := flag.String("config", defaultConfigPath, "path to the configuration file")
 		flag.Parse()
 
 		configPath = *flags
-		if configPath == "" {
-			log.Fatal("config path is not set (set CONFIG_PATH or pass -config)")
-		}
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
