@@ -17,7 +17,7 @@ import (
 	"github.com/uzzal71/students-api/internal/http/handlers/student"
 	"github.com/uzzal71/students-api/internal/models"
 	"github.com/uzzal71/students-api/internal/repository"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -43,7 +43,7 @@ func main() {
 			IgnoreRecordNotFoundError: true,
 		},
 	)
-	db, err := gorm.Open(sqlite.Open(cfg.StoragePath), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(cfg.Postgres.DSN()), &gorm.Config{
 		Logger: gormLogger,
 	})
 	if err != nil {

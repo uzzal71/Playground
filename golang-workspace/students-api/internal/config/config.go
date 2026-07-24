@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -17,11 +18,27 @@ type JWT struct {
 	ExpiresIn string `yaml:"expires_in" env-default:"24h"`
 }
 
+type Postgres struct {
+	Host     string `yaml:"host" env:"DB_HOST" env-required:"true"`
+	Port     string `yaml:"port" env:"DB_PORT" env-required:"true"`
+	User     string `yaml:"user" env:"DB_USER" env-required:"true"`
+	Password string `yaml:"password" env:"DB_PASSWORD" env-required:"true"`
+	DBName   string `yaml:"dbname" env:"DB_NAME" env-required:"true"`
+	SSLMode  string `yaml:"sslmode" env-default:"disable"`
+}
+
+func (p Postgres) DSN() string {
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		p.Host, p.Port, p.User, p.Password, p.DBName, p.SSLMode,
+	)
+}
+
 type Config struct {
-	Env         string `yaml:"env" env:"ENV" env-required:"true"`
-	StoragePath string `yaml:"storage_path" env-required:"true"`
-	HTTPServer  `yaml:"http_server"`
-	JWT         `yaml:"jwt"`
+	Env        string `yaml:"env" env:"ENV" env-required:"true"`
+	HTTPServer `yaml:"http_server"`
+	JWT        `yaml:"jwt"`
+	Postgres   `yaml:"postgres"`
 }
 
 const defaultConfigPath = "config/local.yaml"
