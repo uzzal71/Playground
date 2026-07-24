@@ -1,0 +1,7 @@
+env: "local"
+storage_path: "storage/storage.db"
+http_server:
+  address: "localhost:8082"
+jwt:
+  secret: "dev-only-secret-change-me"
+  expires_in: "24h"

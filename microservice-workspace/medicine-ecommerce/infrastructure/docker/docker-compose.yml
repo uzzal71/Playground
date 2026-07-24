@@ -1,0 +1,389 @@
+# =============================================================================
+# Medicine E-commerce - Development Docker Compose
+# =============================================================================
+# Run from project root: docker compose -f infrastructure/docker/docker-compose.yml up
+# Stop:                  docker compose -f infrastructure/docker/docker-compose.yml down
+# Rebuild a service:     docker compose ... up -d --build <service-name>
+# View logs:             docker compose ... logs -f <service-name>
+# =============================================================================
+
+name: medicine-ecommerce
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  postgres_auth_data:
+  postgres_medicine_data:
+  postgres_seller_data:
+  postgres_order_data:
+  mongo_delivery_data:
+  clickhouse_report_data:
+  rabbitmq_data:
+  redis_data:
+  elasticsearch_data:
+
+services:
+  # ---------------------------------------------------------------------------
+  # API GATEWAY - single public entry point
+  # ---------------------------------------------------------------------------
+  api-gateway:
+    build:
+      context: ../../services/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080" # only this port is exposed to the host
+    environment:
+      NODE_ENV: development
+      PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:3001
+      MEDICINE_SERVICE_URL: http://medicine-service:3002
+      SELLER_SERVICE_URL: http://seller-service:3003
+      ORDER_SERVICE_URL: http://order-service:3004
+      DELIVERY_SERVICE_URL: http://delivery-service:3005
+      REPORT_SERVICE_URL: http://report-service:3006
+      JWT_PUBLIC_KEY_URL: http://auth-service:3001/.well-known/jwks.json
+      RATE_LIMIT_PER_MIN: 100
+    depends_on:
+      - auth-service
+      - medicine-service
+      - seller-service
+      - order-service
+      - delivery-service
+      - report-service
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # AUTH SERVICE
+  # ---------------------------------------------------------------------------
+  auth-service:
+    build:
+      context: ../../services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgres://auth_user:auth_pass@postgres-auth:5432/auth_db
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: dev-secret-change-in-prod
+      JWT_ACCESS_EXPIRES: 15m
+      JWT_REFRESH_EXPIRES: 7d
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: postgres-auth
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # MEDICINE SERVICE - product catalog with search
+  # ---------------------------------------------------------------------------
+  medicine-service:
+    build:
+      context: ../../services/medicine-service
+      dockerfile: Dockerfile
+    container_name: medicine-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DATABASE_URL: postgres://medicine_user:medicine_pass@postgres-medicine:5432/medicine_db
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      AUTH_SERVICE_URL: http://auth-service:3001
+    depends_on:
+      postgres-medicine:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+
+  postgres-medicine:
+    image: postgres:16-alpine
+    container_name: postgres-medicine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: medicine_db
+      POSTGRES_USER: medicine_user
+      POSTGRES_PASSWORD: medicine_pass
+    volumes:
+      - postgres_medicine_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medicine_user -d medicine_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # SELLER SERVICE - shops and inventory
+  # ---------------------------------------------------------------------------
+  seller-service:
+    build:
+      context: ../../services/seller-service
+      dockerfile: Dockerfile
+    container_name: seller-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgres://seller_user:seller_pass@postgres-seller:5432/seller_db
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      AUTH_SERVICE_URL: http://auth-service:3001
+    depends_on:
+      postgres-seller:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+
+  postgres-seller:
+    image: postgres:16-alpine
+    container_name: postgres-seller
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: seller_db
+      POSTGRES_USER: seller_user
+      POSTGRES_PASSWORD: seller_pass
+    volumes:
+      - postgres_seller_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seller_user -d seller_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # ORDER SERVICE - cart, checkout, order state
+  # ---------------------------------------------------------------------------
+  order-service:
+    build:
+      context: ../../services/order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      DATABASE_URL: postgres://order_user:order_pass@postgres-order:5432/order_db
+      REDIS_URL: redis://redis:6379/1
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      AUTH_SERVICE_URL: http://auth-service:3001
+      MEDICINE_SERVICE_URL: http://medicine-service:3002
+      SELLER_SERVICE_URL: http://seller-service:3003
+    depends_on:
+      postgres-order:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+
+  postgres-order:
+    image: postgres:16-alpine
+    container_name: postgres-order
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: order_db
+      POSTGRES_USER: order_user
+      POSTGRES_PASSWORD: order_pass
+    volumes:
+      - postgres_order_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U order_user -d order_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # DELIVERY SERVICE - rider dispatch and tracking
+  # ---------------------------------------------------------------------------
+  delivery-service:
+    build:
+      context: ../../services/delivery-service
+      dockerfile: Dockerfile
+    container_name: delivery-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      MONGO_URL: mongodb://delivery_user:delivery_pass@mongo-delivery:27017/delivery_db?authSource=admin
+      REDIS_URL: redis://redis:6379/2
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      RIDER_LOCK_TTL_SECONDS: 30
+    depends_on:
+      mongo-delivery:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+
+  mongo-delivery:
+    image: mongo:7
+    container_name: mongo-delivery
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: delivery_user
+      MONGO_INITDB_ROOT_PASSWORD: delivery_pass
+      MONGO_INITDB_DATABASE: delivery_db
+    volumes:
+      - mongo_delivery_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # REPORT SERVICE - event consumer for analytics
+  # ---------------------------------------------------------------------------
+  report-service:
+    build:
+      context: ../../services/report-service
+      dockerfile: Dockerfile
+    container_name: report-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: report_user
+      CLICKHOUSE_PASSWORD: report_pass
+      CLICKHOUSE_DB: report_db
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24-alpine
+    container_name: clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: report_db
+      CLICKHOUSE_USER: report_user
+      CLICKHOUSE_PASSWORD: report_pass
+    volumes:
+      - clickhouse_report_data:/var/lib/clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # SHARED INFRASTRUCTURE
+  # ---------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "15672:15672" # management UI - http://localhost:15672 (admin/admin)
+      - "5672:5672" # AMQP protocol - for services running on host
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ../rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"\\(green\\|yellow\\)\"'",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    networks:
+      - backend

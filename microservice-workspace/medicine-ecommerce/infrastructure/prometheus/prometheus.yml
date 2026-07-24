@@ -1,0 +1,72 @@
+# =============================================================================
+# Prometheus scrape config
+# Each service must expose metrics at /metrics on its container port.
+# =============================================================================
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: medicine-ecommerce
+    environment: dev
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Host & container metrics
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Application services
+  - job_name: api-gateway
+    static_configs:
+      - targets: ["api-gateway:8100"]
+    metrics_path: /metrics
+
+  - job_name: auth-service
+    static_configs:
+      - targets: ["auth-service:3001"]
+    metrics_path: /metrics
+
+  - job_name: medicine-service
+    static_configs:
+      - targets: ["medicine-service:3002"]
+    metrics_path: /metrics
+
+  - job_name: seller-service
+    static_configs:
+      - targets: ["seller-service:3003"]
+    metrics_path: /metrics
+
+  - job_name: order-service
+    static_configs:
+      - targets: ["order-service:3004"]
+    metrics_path: /metrics
+
+  - job_name: delivery-service
+    static_configs:
+      - targets: ["delivery-service:3005"]
+    metrics_path: /metrics
+
+  - job_name: report-service
+    static_configs:
+      - targets: ["report-service:3006"]
+    metrics_path: /metrics
+
+  # Infrastructure exporters (add if you install them)
+  # - job_name: postgres
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  # - job_name: rabbitmq
+  #   static_configs:
+  #     - targets: ['rabbitmq:15692']

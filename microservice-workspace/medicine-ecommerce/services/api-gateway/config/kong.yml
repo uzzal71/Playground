@@ -1,0 +1,304 @@
+_format_version: "3.0"
+_transform: true
+
+
+
+
+services:
+
+
+
+
+  - name: auth-service
+    url: http://auth-service:3001
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 60000
+    read_timeout: 60000
+    tags: ["v1", "auth"]
+    routes:
+      - name: auth-public
+        paths:
+          - /api/v1/auth/register
+          - /api/v1/auth/login
+          - /api/v1/auth/refresh
+          - /api/v1/auth/forgot-password
+          - /api/v1/auth/reset-password
+        strip_path: false
+        methods: [POST]
+        tags: ["public"]
+
+      - name: auth-jwks
+        paths:
+          - /.well-known/jwks.json
+        strip_path: false
+        methods: [GET]
+        tags: ["public"]
+
+      - name: auth-protected
+        paths:
+          - /api/v1/auth/me
+          - /api/v1/auth/logout
+          - /api/v1/auth/change-password
+          - /api/v1/users
+        strip_path: false
+        methods: [GET, POST, PUT, PATCH, DELETE]
+        tags: ["protected"]
+    plugins:
+      - name: rate-limiting
+        route: auth-public
+        config:
+          minute: 10
+          hour: 100
+          policy: local
+          fault_tolerant: true
+          hide_client_headers: false
+
+
+
+
+  - name: medicine-service
+    url: http://medicine-service:3002
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 30000
+    read_timeout: 30000
+    tags: ["v1", "medicine"]
+    routes:
+      - name: medicine-public-browse
+        paths:
+          - /api/v1/medicines
+          - /api/v1/categories
+          - /api/v1/search
+        strip_path: false
+        methods: [GET]
+        tags: ["public"]
+
+      - name: medicine-admin
+        paths:
+          - /api/v1/admin/medicines
+          - /api/v1/admin/categories
+        strip_path: false
+        methods: [POST, PUT, PATCH, DELETE]
+        tags: ["protected", "admin"]
+    plugins:
+      - name: rate-limiting
+        route: medicine-public-browse
+        config:
+          minute: 120
+          hour: 5000
+          policy: local
+
+      - name: proxy-cache
+        route: medicine-public-browse
+        config:
+          response_code: [200]
+          request_method: [GET]
+          content_type: [application/json]
+          cache_ttl: 60
+          strategy: memory
+
+
+
+
+  - name: seller-service
+    url: http://seller-service:3003
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 30000
+    read_timeout: 30000
+    tags: ["v1", "seller"]
+    routes:
+      - name: seller-public
+        paths:
+          - /api/v1/shops
+        strip_path: false
+        methods: [GET]
+        tags: ["public"]
+
+      - name: seller-protected
+        paths:
+          - /api/v1/seller
+          - /api/v1/seller/inventory
+          - /api/v1/seller/profile
+        strip_path: false
+        methods: [GET, POST, PUT, PATCH, DELETE]
+        tags: ["protected"]
+
+
+
+
+  - name: order-service
+    url: http://order-service:3004
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 60000
+    read_timeout: 60000
+    tags: ["v1", "order"]
+    routes:
+      - name: order-protected
+        paths:
+          - /api/v1/cart
+          - /api/v1/orders
+          - /api/v1/checkout
+        strip_path: false
+        methods: [GET, POST, PUT, PATCH, DELETE]
+        tags: ["protected"]
+    plugins:
+      - name: rate-limiting
+        route: order-protected
+        config:
+          minute: 30
+          hour: 500
+          policy: local
+
+
+
+
+  - name: delivery-service
+    url: http://delivery-service:3005
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 30000
+    read_timeout: 30000
+    tags: ["v1", "delivery"]
+    routes:
+      - name: delivery-protected
+        paths:
+          - /api/v1/deliveries
+          - /api/v1/rider
+        strip_path: false
+        methods: [GET, POST, PUT, PATCH, DELETE]
+        tags: ["protected"]
+
+
+
+
+  - name: report-service
+    url: http://report-service:3006
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 60000
+    read_timeout: 120000
+    tags: ["v1", "report"]
+    routes:
+      - name: report-admin
+        paths:
+          - /api/v1/reports
+          - /api/v1/analytics
+        strip_path: false
+        methods: [GET]
+        tags: ["protected", "admin"]
+    plugins:
+      - name: rate-limiting
+        route: report-admin
+        config:
+          minute: 20
+          hour: 200
+          policy: local
+
+
+
+
+plugins:
+
+
+
+
+  - name: cors
+    config:
+      origins:
+        - "http://localhost:3000"
+        - "http://localhost:5173"
+        - "https://app.yourdomain.com"
+      methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+        - X-Auth-Token
+        - X-Request-ID
+      exposed_headers:
+        - X-Request-ID
+        - X-RateLimit-Limit
+        - X-RateLimit-Remaining
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+
+
+  - name: rate-limiting
+    config:
+      minute: 60
+      hour: 1000
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
+
+
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10
+      size_unit: megabytes
+      require_content_length: false
+
+
+  - name: correlation-id
+    config:
+      header_name: X-Request-ID
+      generator: uuid
+      echo_downstream: true
+
+
+  - name: prometheus
+    config:
+      per_consumer: false
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
+
+
+  - name: response-transformer
+    config:
+      add:
+        headers:
+          - "X-Frame-Options:DENY"
+          - "X-Content-Type-Options:nosniff"
+          - "X-XSS-Protection:1; mode=block"
+          - "Referrer-Policy:strict-origin-when-cross-origin"
+          - "Strict-Transport-Security:max-age=31536000; includeSubDomains"
+
+
+  - name: jwt
+    enabled: false
+    config:
+      uri_param_names: []
+      cookie_names: []
+      header_names:
+        - authorization
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+      secret_is_base64: false
+      run_on_preflight: true
+
+
+
+
+consumers:
+
+
+
+
+  - username: admin-app
+    custom_id: admin-app-001
+    tags: ["admin"]
+
+
+
+

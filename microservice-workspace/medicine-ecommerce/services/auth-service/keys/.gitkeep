@@ -1,0 +1,2 @@
+# This file keeps the keys/ directory in git.
+# Actual key files are gitignored — generate them with: npm run keys:generate

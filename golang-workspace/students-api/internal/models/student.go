@@ -1,0 +1,8 @@
+package models
+
+type Student struct {
+	ID    uint   `json:"id" gorm:"primaryKey"`
+	Name  string `json:"name" gorm:"not null" binding:"required"`
+	Email string `json:"email" gorm:"not null;unique" binding:"required,email"`
+	Age   int    `json:"age" gorm:"not null" binding:"required"`
+}

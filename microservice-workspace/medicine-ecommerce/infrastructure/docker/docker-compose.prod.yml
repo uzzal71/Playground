@@ -1,0 +1,283 @@
+# =============================================================================
+# Medicine E-commerce - PRODUCTION overrides
+# =============================================================================
+# Use together with the base file:
+#
+#   docker compose \
+#     -f infrastructure/docker/docker-compose.yml \
+#     -f infrastructure/docker/docker-compose.prod.yml \
+#     --env-file .env.production \
+#     up -d
+#
+# What changes vs dev:
+#   - All secrets come from .env.production (never committed)
+#   - DB / Redis / RabbitMQ ports are NOT exposed to the host
+#   - Only the gateway is reachable from outside (port 443)
+#   - Resource limits and replica counts added
+#   - Healthchecks tightened, restart policies stricter
+#   - Logs go to json-file with rotation (prevents disk fill)
+# =============================================================================
+
+name: medicine-ecommerce
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "5"
+
+x-restart-policy: &restart-policy
+  restart: always
+
+services:
+  # ---------------------------------------------------------------------------
+  # API GATEWAY - the only public-facing service
+  # ---------------------------------------------------------------------------
+  api-gateway:
+    <<: *restart-policy
+    ports:
+      - "443:8080"   # behind a real TLS terminator (NGINX/Cloudflare/ALB) in prod
+    environment:
+      NODE_ENV: production
+      RATE_LIMIT_PER_MIN: 60
+      JWT_PUBLIC_KEY_URL: ${JWT_PUBLIC_KEY_URL}
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # AUTH SERVICE
+  # ---------------------------------------------------------------------------
+  auth-service:
+    <<: *restart-policy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${AUTH_DB_USER}:${AUTH_DB_PASS}@postgres-auth:5432/${AUTH_DB_NAME}
+      REDIS_URL: redis://:${REDIS_PASS}@redis:6379/0
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRES: 15m
+      JWT_REFRESH_EXPIRES: 7d
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    logging: *default-logging
+
+  postgres-auth:
+    <<: *restart-policy
+    ports: []   # NOT exposed to host in prod
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME}
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASS}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # MEDICINE SERVICE
+  # ---------------------------------------------------------------------------
+  medicine-service:
+    <<: *restart-policy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${MEDICINE_DB_USER}:${MEDICINE_DB_PASS}@postgres-medicine:5432/${MEDICINE_DB_NAME}
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    logging: *default-logging
+
+  postgres-medicine:
+    <<: *restart-policy
+    ports: []
+    environment:
+      POSTGRES_DB: ${MEDICINE_DB_NAME}
+      POSTGRES_USER: ${MEDICINE_DB_USER}
+      POSTGRES_PASSWORD: ${MEDICINE_DB_PASS}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # SELLER SERVICE
+  # ---------------------------------------------------------------------------
+  seller-service:
+    <<: *restart-policy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${SELLER_DB_USER}:${SELLER_DB_PASS}@postgres-seller:5432/${SELLER_DB_NAME}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    logging: *default-logging
+
+  postgres-seller:
+    <<: *restart-policy
+    ports: []
+    environment:
+      POSTGRES_DB: ${SELLER_DB_NAME}
+      POSTGRES_USER: ${SELLER_DB_USER}
+      POSTGRES_PASSWORD: ${SELLER_DB_PASS}
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # ORDER SERVICE - the busiest, scale highest
+  # ---------------------------------------------------------------------------
+  order-service:
+    <<: *restart-policy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${ORDER_DB_USER}:${ORDER_DB_PASS}@postgres-order:5432/${ORDER_DB_NAME}
+      REDIS_URL: redis://:${REDIS_PASS}@redis:6379/1
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+    logging: *default-logging
+
+  postgres-order:
+    <<: *restart-policy
+    ports: []
+    environment:
+      POSTGRES_DB: ${ORDER_DB_NAME}
+      POSTGRES_USER: ${ORDER_DB_USER}
+      POSTGRES_PASSWORD: ${ORDER_DB_PASS}
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # DELIVERY SERVICE
+  # ---------------------------------------------------------------------------
+  delivery-service:
+    <<: *restart-policy
+    environment:
+      NODE_ENV: production
+      MONGO_URL: mongodb://${MONGO_USER}:${MONGO_PASS}@mongo-delivery:27017/${MONGO_DB}?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASS}@redis:6379/2
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    logging: *default-logging
+
+  mongo-delivery:
+    <<: *restart-policy
+    ports: []
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # REPORT SERVICE
+  # ---------------------------------------------------------------------------
+  report-service:
+    <<: *restart-policy
+    environment:
+      NODE_ENV: production
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASS}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    logging: *default-logging
+
+  clickhouse:
+    <<: *restart-policy
+    ports: []
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASS}
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # SHARED INFRASTRUCTURE - all hidden from host network
+  # ---------------------------------------------------------------------------
+  rabbitmq:
+    <<: *restart-policy
+    ports: []   # management UI not public — access via SSH tunnel or VPN only
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    logging: *default-logging
+
+  redis:
+    <<: *restart-policy
+    command: redis-server --requirepass ${REDIS_PASS} --appendonly yes
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    logging: *default-logging
+
+  elasticsearch:
+    <<: *restart-policy
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      ELASTIC_PASSWORD: ${ELASTIC_PASS}
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+    logging: *default-logging

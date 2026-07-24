@@ -1,0 +1,43 @@
+
+
+name: api-gateway
+
+networks:
+  backend:
+    external: true
+    name: medicine-ecommerce_backend
+
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: medicine-ecommerce/api-gateway:latest
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8000"     
+      - "8443:8443"     
+      - "8001:8001"     
+      - "8100:8100"     
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/config/kong.yml
+      KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 ssl"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_STATUS_LISTEN: "0.0.0.0:8100"
+      KONG_LOG_LEVEL: info
+      KONG_PLUGINS: "bundled,jwt-verifier"
+      KONG_NGINX_WORKER_PROCESSES: auto
+      KONG_REAL_IP_HEADER: X-Real-IP
+      KONG_TRUSTED_IPS: "0.0.0.0/0,::/0"
+    volumes:
+      - ./config:/etc/kong/config:ro
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - backend
