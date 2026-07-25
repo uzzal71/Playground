@@ -30,9 +30,8 @@ func main() {
 	}
 
 	// start server
+	fmt.Println("Server started on", cfg.HRRPServer.Addr)
 	if err := httpServer.ListenAndServe(); err != nil {
 		panic(err)
 	}
-
-	fmt.Println("Server started on", cfg.HRRPServer.Addr)
 }
