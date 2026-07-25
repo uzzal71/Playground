@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/uzzal71/blogs-api/internal/config"
+	"github.com/uzzal71/blogs-api/internal/http/handlers/blog"
 )
 
 func main() {
@@ -24,9 +25,7 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("welcome to blogs api"))
-	})
+	router.HandleFunc("POST /api/blogs", blog.New())
 
 	// setup server
 	httpServer := &http.Server{
