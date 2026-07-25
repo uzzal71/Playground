@@ -8,14 +8,8 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-var config *Config
-
-func Get() *Config {
-	return config
-}
-
 type HRRPServer struct {
-	Addr string
+	Addr string `yaml:"address"`
 }
 
 // env-default:"production"

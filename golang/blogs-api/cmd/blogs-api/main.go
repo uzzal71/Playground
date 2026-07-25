@@ -1,7 +1,38 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/uzzal71/blogs-api/internal/config"
+)
 
 func main() {
-	fmt.Println("Welcome to the Blogs API!")
+	// load config
+	cfg := config.MustLoad()
+	// database setup
+	// setup routes
+	router := http.NewServeMux()
+
+	router.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("welcome to blogs api"))
+	})
+
+	// setup server
+	httpServer := &http.Server{
+		Addr:    cfg.HRRPServer.Addr,
+		Handler: router,
+	}
+
+	// start server
+	if err := httpServer.ListenAndServe(); err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Server started on", cfg.HRRPServer.Addr)
 }
