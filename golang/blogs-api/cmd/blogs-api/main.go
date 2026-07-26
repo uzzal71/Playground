@@ -11,12 +11,20 @@ import (
 
 	"github.com/uzzal71/blogs-api/internal/config"
 	"github.com/uzzal71/blogs-api/internal/http/handlers/blog"
+	"github.com/uzzal71/blogs-api/internal/storage/sqlite"
 )
 
 func main() {
 	// load config
 	cfg := config.MustLoad()
+
 	// database setup
+	storage, err := sqlite.New(cfg)
+	if err != nil {
+		slog.Error("failed to setup storage", "error", err)
+		os.Exit(1)
+	}
+
 	// setup routes
 	router := http.NewServeMux()
 
@@ -25,7 +33,9 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	router.HandleFunc("POST /api/blogs", blog.New())
+	router.HandleFunc("POST /api/blogs", blog.New(storage))
+	router.HandleFunc("GET /api/blogs", blog.GetList(storage))
+	router.HandleFunc("GET /api/blogs/{id}", blog.GetById(storage))
 
 	// setup server
 	httpServer := &http.Server{
