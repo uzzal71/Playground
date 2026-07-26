@@ -13,7 +13,9 @@ type Order struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-
+func (o *Order) ChangeStatus(newStatus string) {
+	o.Status = newStatus
+}
 
 func main() {
 	order1 := Order{
@@ -30,4 +32,7 @@ func main() {
 
 	result, _ := json.Marshal(order1)
 	fmt.Println("JSON Representation:", string(result))
+
+	order1.ChangeStatus("Shipped")
+	fmt.Println("Updated Order Status:", order1.Status)
 }
