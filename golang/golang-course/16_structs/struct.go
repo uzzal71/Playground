@@ -34,5 +34,15 @@ func main() {
 	fmt.Println("JSON Representation:", string(result))
 
 	order1.ChangeStatus("Shipped")
-	fmt.Println("Updated Order Status:", order1.Status)
+	
+	// anonymous struct
+	language := struct {
+		Name string
+		Version float64
+	}{
+		Name: "Go",
+		Version: 1.20,
+	}
+
+	fmt.Println("Language Name:", language.Name)
 }
