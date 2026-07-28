@@ -40,6 +40,22 @@ func (b BKash) Refund(amount float64) error {
 }
 
 // --------------------
+// PayPal
+// --------------------
+
+type PayPal struct{}
+
+func (p PayPal) Pay(amount float64) error {
+	fmt.Printf("PayPal: Payment of $%.2f processed.\n", amount)
+	return nil
+}
+
+func (p PayPal) Refund(amount float64) error {
+	fmt.Printf("PayPal: Refund of $%.2f processed.\n", amount)
+	return nil
+}
+
+// --------------------
 // Business Logic
 // --------------------
 
@@ -61,4 +77,8 @@ func main() {
 	gateway = BKash{}
 	Checkout(gateway, 80)
 	CancelOrder(gateway, 80)
+
+	gateway = PayPal{}
+	Checkout(gateway, 140)
+	CancelOrder(gateway, 140)
 }
