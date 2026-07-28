@@ -24,6 +24,22 @@ func (s Stripe) Refund(amount float64) error {
 }
 
 // --------------------
+// bKash
+// --------------------
+
+type BKash struct{}
+
+func (b BKash) Pay(amount float64) error {
+	fmt.Printf("bKash: Payment of $%.2f processed.\n", amount)
+	return nil
+}
+
+func (b BKash) Refund(amount float64) error {
+	fmt.Printf("bKash: Refund of $%.2f processed.\n", amount)
+	return nil
+}
+
+// --------------------
 // Business Logic
 // --------------------
 
@@ -41,4 +57,8 @@ func main() {
 	gateway = Stripe{}
 	Checkout(gateway, 100)
 	CancelOrder(gateway, 100)
+
+	gateway = BKash{}
+	Checkout(gateway, 80)
+	CancelOrder(gateway, 80)
 }
