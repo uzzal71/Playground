@@ -15,6 +15,11 @@ func (s Stripe) Pay(amount float64) error {
 	return nil
 }
 
+func (s Stripe) Refund(amount float64) error {
+	fmt.Printf("Stripe: Refund of $%.2f processed.\n", amount)
+	return nil
+}
+
 func Checkout(p Payment, amount float64) error {
 	return p.Pay(amount)
 }
