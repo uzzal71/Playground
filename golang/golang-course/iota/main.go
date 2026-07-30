@@ -3,7 +3,8 @@ package main
 import "fmt"
 
 const (
-	Monday = iota
+	_ = iota
+	Monday
 	Tuesday
 	Wednesday
 	Thursday
@@ -14,6 +15,12 @@ const (
 
 func main() {
 	fmt.Println("Days of the week:")
-	fmt.Println("Monday: ", Monday)
-	
+	fmt.Println("Monday:", Monday)
+	fmt.Print("Tuesday:", Thursday)
+	fmt.Print("Wednesday:", Wednesday)
+	fmt.Print("Thursday:", Thursday)
+	fmt.Print("Friday:", Friday)
+	fmt.Print("Saturday:", Saturday)
+	fmt.Print("Sunday:", Sunday)
+
 }
