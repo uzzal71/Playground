@@ -48,6 +48,16 @@ func (u *Upay) Refund(amount float64) string {
 	return "Refunded " + formatAmount(amount) + " to Upay"
 }
 
+type SureCash struct{}
+
+func (s *SureCash) Pay(amount float64) string {
+	return "Paid " + formatAmount(amount) + " using SureCash"
+}
+
+func (s *SureCash) Refund(amount float64) string {
+	return "Refunded " + formatAmount(amount) + " to SureCash"
+}
+
 func formatAmount(amount float64) string {
 	return fmt.Sprintf("%.2f", amount)
 }	
