@@ -58,6 +58,26 @@ func (s *SureCash) Refund(amount float64) string {
 	return "Refunded " + formatAmount(amount) + " to SureCash"
 }
 
+type CityBank struct{}
+
+func (c *CityBank) Pay(amount float64) string {
+	return "Paid " + formatAmount(amount) + " using CityBank"
+}
+
+func (c *CityBank) Refund(amount float64) string {
+	return "Refunded " + formatAmount(amount) + " to CityBank"
+}
+
+type Stripe struct{}
+
+func (s *Stripe) Pay(amount float64) string {
+	return "Paid " + formatAmount(amount) + " using Stripe"
+}
+
+func (s *Stripe) Refund(amount float64) string {
+	return "Refunded " + formatAmount(amount) + " to Stripe"
+}
+
 func formatAmount(amount float64) string {
 	return fmt.Sprintf("%.2f", amount)
 }	
