@@ -38,6 +38,16 @@ func (r *Rocket) Refund(amount float64) string {
 	return "Refunded " + formatAmount(amount) + " to Rocket"
 }
 
+type Upay struct{}
+
+func (u *Upay) Pay(amount float64) string {
+	return "Paid " + formatAmount(amount) + " using Upay"
+}
+
+func (u *Upay) Refund(amount float64) string {
+	return "Refunded " + formatAmount(amount) + " to Upay"
+}
+
 func formatAmount(amount float64) string {
 	return fmt.Sprintf("%.2f", amount)
 }	
