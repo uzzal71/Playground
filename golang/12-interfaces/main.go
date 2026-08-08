@@ -8,14 +8,24 @@ type Payment interface {
 	Refund(amount float64) string	
 }
 
-type CreditCard struct{}
+type Nagad struct{}
 
-func (c *CreditCard) Pay(amount float64) string {
-	return "Paid " + formatAmount(amount) + " using Credit Card"
+func (n *Nagad) Pay(amount float64) string {
+	return "Paid " + formatAmount(amount) + " using Nagad"
 }
 
-func (c *CreditCard) Refund(amount float64) string {
-	return "Refunded " + formatAmount(amount) + " to Credit Card"
+func (n *Nagad) Refund(amount float64) string {
+	return "Refunded " + formatAmount(amount) + " to Nagad"
+}
+
+type Bkash struct{}
+
+func (b *Bkash) Pay(amount float64) string {
+	return "Paid " + formatAmount(amount) + " using Bkash"
+}
+
+func (b *Bkash) Refund(amount float64) string {
+	return "Refunded " + formatAmount(amount) + " to Bkash"
 }
 
 func formatAmount(amount float64) string {
@@ -25,7 +35,7 @@ func formatAmount(amount float64) string {
 func main() {
 	var payment Payment
 
-	payment = &CreditCard{}
-	println(payment.Pay(100.0))	// Output: Paid 100.00 using Credit Card
-	println(payment.Refund(50.0))  // Output: Refunded 50.00 to Credit Card
+	payment = &Nagad{}
+	println(payment.Pay(100.0))	// Output: Paid 100.00 using Nagad
+	println(payment.Refund(50.0))  // Output: Refunded 50.00 to Nagad
 }
