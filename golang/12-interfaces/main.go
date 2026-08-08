@@ -28,6 +28,16 @@ func (b *Bkash) Refund(amount float64) string {
 	return "Refunded " + formatAmount(amount) + " to Bkash"
 }
 
+type Rocket struct{}
+
+func (r *Rocket) Pay(amount float64) string {
+	return "Paid " + formatAmount(amount) + " using Rocket"
+}
+
+func (r *Rocket) Refund(amount float64) string {
+	return "Refunded " + formatAmount(amount) + " to Rocket"
+}
+
 func formatAmount(amount float64) string {
 	return fmt.Sprintf("%.2f", amount)
 }	
