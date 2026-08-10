@@ -68,6 +68,16 @@ func (c *CityBank) Refund(amount float64) string {
 	return "Refunded " + formatAmount(amount) + " to CityBank"
 }
 
+type BracBank struct{}
+
+func (b *BracBank) Pay(amount float64) string {
+	return "Paid " + formatAmount(amount) + " using BracBank"
+}
+
+func (b *BracBank) Refund(amount float64) string {
+	return "Refunded " + formatAmount(amount) + " to BracBank"
+}
+
 type Stripe struct{}
 
 func (s *Stripe) Pay(amount float64) string {
